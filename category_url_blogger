@@ -1,0 +1,32 @@
+//route https://www.marwanto606.com/category/*
+addEventListener("fetch", event => {
+  const url = new URL(event.request.url.replace('/category/', '/'))
+  let BASE = 'https://www.marwanto606.com'
+  const OLD_URL = BASE + '/search/label' + url.pathname +'?max-results=5';
+  const NEW_URL = BASE + '/category'+ url.pathname;
+
+async function handleRequest(req) {
+  const res = await fetch(req)
+  return rewriter.transform(res)
+}
+class AttributeRewriter {
+  constructor(attributeName) {
+    this.attributeName = attributeName
+  }
+  element(element) {
+    const attribute = element.getAttribute(this.attributeName)
+    if (attribute) {
+      element.setAttribute(
+        this.attributeName,
+        attribute.replace(OLD_URL, NEW_URL)
+      )
+    }
+  }
+}
+const rewriter = new HTMLRewriter()
+  .on("link", new AttributeRewriter("href"))
+  .on("meta", new AttributeRewriter("content"))
+  .on("a", new AttributeRewriter("href"))
+  event.respondWith(handleRequest(OLD_URL)
+  .catch(err => new Response(err.toString(),{status:500})))
+})
