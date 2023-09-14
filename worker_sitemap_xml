@@ -1,0 +1,21 @@
+//route worker: https://example.com/sitemap.xml
+async function handleRequest(request) {
+  let url = new URL(request.url)
+  let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+  <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+  <loc>https://${url.hostname}</loc>
+  <changefreq>always</changefreq>
+  <priority>1.0</priority>
+  </url>
+  </urlset>`
+    return new Response(sitemap, {
+      headers: {
+        "content-type": "application/xml;charset=UTF-8",
+      },
+    })
+  }
+  
+  addEventListener("fetch", event => {
+    return event.respondWith(handleRequest(event.request))
+  })
