@@ -1,0 +1,17 @@
+//route worker: https://example.com/robots.txt
+async function handleRequest(request) {
+let url = new URL(request.url)
+const robots = `User-agent: *
+Allow: /
+Sitemap: https://${url.hostname}/sitemap.xml
+`
+  return new Response(robots, {
+    headers: {
+      "content-type": "text/plain",
+    },
+  })
+}
+
+addEventListener("fetch", event => {
+  return event.respondWith(handleRequest(event.request))
+})
