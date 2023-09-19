@@ -1,32 +1,50 @@
-//route https://www.marwanto606.com/category/*
-addEventListener("fetch", event => {
-  const url = new URL(event.request.url.replace('/category/', '/'))
-  let BASE = 'https://www.marwanto606.com'
-  const OLD_URL = BASE + '/search/label' + url.pathname +'?max-results=5';
-  const NEW_URL = BASE + '/category'+ url.pathname;
+//route https://*.marwanto606.com/category/*
+addEventListener("fetch", (event) => {
+  const url = new URL(event.request.url.replace('/category/', '/'));
+  const hostname = url.hostname;
 
-async function handleRequest(req) {
-  const res = await fetch(req)
-  return rewriter.transform(res)
-}
-class AttributeRewriter {
-  constructor(attributeName) {
-    this.attributeName = attributeName
+  let BASE = 'https://www.marwanto606.com';
+//
+  const DEFAULT_URL = 'https://category.marwanto606.workers.dev';
+  const PATH = url.pathname;
+  
+  // Mendeteksi subdomain dan menentukan BASE URL sesuai
+  if (hostname === 'skema.marwanto606.com') {
+    BASE = 'https://skema.marwanto606.com';
+  } else if (hostname === 'game.marwanto606.com') {
+    BASE = 'https://game.marwanto606.com';
   }
-  element(element) {
-    const attribute = element.getAttribute(this.attributeName)
-    if (attribute) {
-      element.setAttribute(
-        this.attributeName,
-        attribute.replace(OLD_URL, NEW_URL)
-      )
+
+  const OLD_URL = BASE + '/search/label' + PATH + '?max-results=5';
+  const NEW_URL = BASE + '/category' + PATH;
+
+  async function handleRequest(req) {
+    const res = await fetch(req);
+    return rewriter.transform(res);
+  }
+
+  class AttributeRewriter {
+    constructor(attributeName) {
+      this.attributeName = attributeName;
+    }
+    element(element) {
+      const attribute = element.getAttribute(this.attributeName);
+      if (attribute) {
+        element.setAttribute(
+          this.attributeName,
+          attribute.replace(OLD_URL, NEW_URL)
+        );
+      }
     }
   }
-}
-const rewriter = new HTMLRewriter()
-  .on("link", new AttributeRewriter("href"))
-  .on("meta", new AttributeRewriter("content"))
-  .on("a", new AttributeRewriter("href"))
-  event.respondWith(handleRequest(OLD_URL)
-  .catch(err => new Response(err.toString(),{status:500})))
-})
+
+  const rewriter = new HTMLRewriter()
+    .on("link", new AttributeRewriter("href"))
+    .on("meta", new AttributeRewriter("content"))
+    .on("a", new AttributeRewriter("href"));
+
+  // Menggunakan DEFAULT_URL jika tidak ada subdomain yang cocok
+  const responseURL = (BASE === DEFAULT_URL) ? DEFAULT_URL : OLD_URL;
+
+  event.respondWith(handleRequest(responseURL).catch((err) => new Response(err.toString(), { status: 500 })));
+});
