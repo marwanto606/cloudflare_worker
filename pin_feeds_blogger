@@ -1,0 +1,66 @@
+addEventListener('fetch', event => {
+  event.respondWith(handleRequest(event.request))
+})
+
+async function handleRequest(request) {
+  // Dapatkan subdomain dari URL
+  const url = new URL(request.url);
+  const hostname = url.hostname;
+
+  // Set default feed URL
+  let feedUrl = 'https://www.marwanto606.com/feeds/posts/default?redirect=none&alt=rss';
+
+  // Jika akses dari URL default worker, gunakan URL feed default
+  if (hostname === 'feeds.marwanto606.workers.dev') {
+    return fetchAndModifyFeed(feedUrl);
+  }
+
+  // Dapatkan subdomain dengan memisahkan hostname menggunakan titik (.)
+  const subdomains = hostname.split('.');
+  const subdomain = subdomains[0];
+
+  // Jika ada subdomain yang ditemukan, gunakan subdomain dalam feed URL
+  if (subdomain) {
+    feedUrl = `https://${subdomain}.marwanto606.com/feeds/posts/default?redirect=none&alt=rss`;
+  }
+
+  return fetchAndModifyFeed(feedUrl);
+}
+
+async function fetchAndModifyFeed(feedUrl) {
+  // Mengambil data dari URL feed
+  const response = await fetch(feedUrl);
+
+  if (response.status === 200) {
+    // Mengambil isi dari respons
+    let feedText = await response.text();
+
+    // Menyesuaikan bagian <media:thumbnail> dengan menggunakan regex
+    feedText = feedText.replace(
+      /<media:thumbnail\s+xmlns:media="http:\/\/search\.yahoo\.com\/mrss\/"\s+url="([^"]+\/)s72-c(-rw)?\//g,
+      '<enclosure url="$1s0/'
+    );
+
+    // Menghapus height dan width pada tag enclosure menggunakan regex
+    feedText = feedText.replace(
+      /<enclosure\s+url="([^"]+)"\s+height="[^"]+"\s+width="[^"]+"\/>/g,
+      '<enclosure url="$1"\/>'
+    );
+
+    // Set header response untuk mengindikasikan bahwa ini adalah RSS feed
+    const headers = new Headers(response.headers);
+    headers.set('Content-Type', 'application/rss+xml');
+
+    // Mengembalikan konten feed yang telah dimodifikasi sebagai respons
+    return new Response(feedText, {
+      status: 200,
+      headers,
+    });
+  } else {
+    // Jika gagal mengambil feed, berikan respons dengan kode status yang sesuai
+    return new Response('Gagal mengambil feed', {
+      status: response.status,
+      statusText: response.statusText,
+    });
+  }
+}
